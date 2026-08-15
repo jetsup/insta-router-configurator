@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Smalnets Config Tool
+Comment=Instant billing system tool for RouterOS infrastructure config management
+Exec=/usr/local/bin/smalnets
+Icon=smalnets
+Terminal=false
+Categories=Utility;Network;
+# CRUCIAL FOR LINUX TASKBAR MATCHING:
+# This must match the binary name or the assigned system string execution target
+StartupWMClass=smalnets

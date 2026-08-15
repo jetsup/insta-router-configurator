@@ -1,0 +1,43 @@
+name: 'smalnets'
+arch: 'amd64'
+platform: 'linux'
+version: '1.0.0'
+release: 1
+section: 'utils'
+priority: 'optional'
+maintainer: 'George Ngigi <ngigegeorge023@gmail.com>'
+description: 'Instant billing system tool for RouterOS infrastructure config management.'
+vendor: 'Smalnets Team'
+homepage: 'https://github.com/jetsup/insta-billing'
+license: 'MIT'
+
+# Mapping specific internal build assets to native Linux platform directories
+contents:
+    - src: 'build/pkg-root/usr/local/bin/smalnets'
+      dst: '/usr/local/bin/smalnets'
+      type: 'file'
+      file_info:
+          mode: 0755
+
+    - src: 'build/pkg-root/usr/share/applications/smalnets.desktop'
+      dst: '/usr/share/applications/smalnets.desktop'
+      type: 'file'
+      file_info:
+          mode: 0644
+
+    - src: 'build/pkg-root/usr/share/pixmaps/smalnets.png'
+      dst: '/usr/share/pixmaps/smalnets.png'
+      type: 'file'
+      file_info:
+          mode: 0644
+
+    - src: 'build/pkg-root/usr/share/man/man1/smalnets.1'
+      dst: '/usr/share/man/man1/smalnets.1'
+      type: 'file'
+      file_info:
+          mode: 0644
+
+# CHANGED: 'dependencies' renamed to 'depends' to support modern nFPM parsers
+depends:
+    - libgl1
+    - libglib2.0-0

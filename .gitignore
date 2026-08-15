@@ -1,0 +1,7 @@
+build
+dist
+.venv-build
+__pycache__
+*.pyc
+.DS_Store
+config_program/version.txt

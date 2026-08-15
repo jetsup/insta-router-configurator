@@ -1,0 +1,17 @@
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+ignore = [
+  "E501",   # line too long — ok for now
+  "F403",   # `from X import *` — standard ttkbootstrap pattern
+  "F405",   # name from star import — standard ttkbootstrap pattern
+  "N802",   # function names with uppercase (tkinter callbacks)
+  "N803",   # argument names with uppercase
+  "N806",   # variable names with uppercase
+  "SIM108", # simplify if/else — sometimes readability matters
+]
+
+[format]
+quote-style = "single"
+line-ending = "lf"
