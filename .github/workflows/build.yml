@@ -1,8 +1,12 @@
 name: Compile Branded Multi-OS Production Artifacts
 
 on:
+  # NOTE: this repo has immutable releases enabled, so assets can only be
+  # attached BEFORE a release is published. Create releases as DRAFTS — this
+  # fires on 'created' — the workflow attaches all installers to the draft,
+  # then the publish-release job flips it to published.
   release:
-    types: [published]
+    types: [created]
   workflow_dispatch:
 
 permissions:
@@ -83,6 +87,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.exe
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -200,6 +205,7 @@ jobs:
           files: |
             dist/smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.deb
             dist/smalnets-${{ steps.version_info.outputs.version }}-1.${{ steps.version_info.outputs.arch }}.rpm
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -346,6 +352,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.dmg
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -365,13 +372,32 @@ jobs:
           ssh -o StrictHostKeyChecking=no "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases"
 
   # =========================================================================
+  # 🚀 PUBLISH JOB (flip the draft release to published after all installers
+  #    are attached — required because immutable releases reject asset
+  #    uploads to an already-published release)
+  # =========================================================================
+  publish-release:
+    if: github.event_name == 'release'
+    name: Publish Release (draft -> published)
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-linux, build-macos]
+
+    steps:
+      - name: Publish the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ github.ref_name }}" --draft=false
+          echo "Published ${{ github.ref_name }}"
+
+  # =========================================================================
   # 🧹 VPS STORAGE CLEANUP (keep max 5 releases, runs after all builds)
   # =========================================================================
   cleanup-vps:
     if: github.event_name == 'release'
     name: Cleanup Old Releases from VPS
     runs-on: ubuntu-latest
-    needs: [build-windows, build-linux, build-macos]
+    needs: [publish-release]
 
     steps:
       - name: Remove oldest releases beyond the 5 most recent

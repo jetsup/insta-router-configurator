@@ -97,6 +97,12 @@ are attached to GitHub Releases. The app checks
 `https://api.github.com/repos/jetsup/insta-router-configurator/releases/latest`
 for new versions and offers to download and apply updates on Windows.
 
+This repository has **immutable releases** enabled, so assets can only be
+attached before a release is published. Create a release as a **draft**
+(set the target tag, leave "Set as latest release" disabled and do NOT publish);
+the workflow attaches all installers to the draft, then publishes it
+automatically.
+
 ## Project Layout
 
 ```txt
