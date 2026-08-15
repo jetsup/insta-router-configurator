@@ -5,8 +5,6 @@ the Smalnets hotspot network. It talks to the Smalnets API at
 `https://smalnets.ddns.net`, tests router connectivity, and provisions
 hotspot infrastructure on the router.
 
-Built with Python and PySide6.
-
 ## Features
 
 - Login and token-based authentication with the Smalnets API
@@ -61,6 +59,12 @@ python3 scripts/diagnose_hotspot.py
 
 Prints the router's current hotspot/bridge/firewall state.
 
+## Usage
+
+The configurator uses ethernet port 2 (LAN) on the router for provisioning. It is mandatory to connect to this port as any other port will not fully provision the router as they will be locked down during the provisioning process.
+
+Ethernet port may be locked from the android app or the user dashboard after provisioning.
+
 ## Building
 
 Standalone binaries are compiled with [Nuitka](https://nuitka.net/).
@@ -95,7 +99,7 @@ for new versions and offers to download and apply updates on Windows.
 
 ## Project Layout
 
-```
+```txt
 assets/             App logo and icons
 config_program/     PySide6 desktop application
 scripts/            Headless provisioning, diagnostics, icon generation
