@@ -32,6 +32,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install zstandard Nuitka PySide6 requests RouterOS-api imageio pillow
 
+      - name: Generate Windows icon (logo.ico)
+        shell: bash
+        run: |
+          python scripts/make_icon.py
+
       - name: Create version file
         shell: bash
         run: |
@@ -57,7 +62,7 @@ jobs:
               --plugin-enable=pyside6 \
               --windows-console-mode=disable \
               --output-dir=build \
-              --windows-icon-from-ico=assets/images/logo.png \
+              --windows-icon-from-ico=assets/images/logo.ico \
               --include-data-files=assets/images/logo.png=assets/images/logo.png \
               --include-data-files=config_program/version.txt=version.txt \
               --follow-import-to=api \

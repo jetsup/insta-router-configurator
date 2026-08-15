@@ -9,7 +9,15 @@ import requests
 logger = logging.getLogger(__name__)
 
 VERSION = "0.0.0"
-UPDATE_URL = "https://smalnets.ddns.net/api/v1/latest-release"
+UPDATE_URL = "https://api.github.com/repos/jetsup/insta-router-configurator/releases/latest"
+GITHUB_ACCEPT_HEADER = "application/vnd.github+json"
+
+_ASSET_SUFFIXES = {
+    'windows': '.exe',
+    'macos': '.dmg',
+    'linux_deb': '.deb',
+    'linux_rpm': '.rpm',
+}
 
 
 def _is_compiled() -> bool:
@@ -40,13 +48,22 @@ def get_current_version() -> str:
 
 def _version_file_candidates() -> list:
     if _is_compiled():
-        exe_dir = os.path.dirname(sys.executable)
-        return [os.path.join(exe_dir, 'version.txt')]
+        # Nuitka onefile extracts bundled data files (version.txt) to a temp
+        # dir alongside the extracted binary. sys.argv[0] points at that
+        # binary in onefile mode; sys.executable stays at the original exe.
+        argv0_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+        candidates = [
+            os.path.join(argv0_dir, 'version.txt'),
+            os.path.join(exe_dir, 'version.txt'),
+        ]
+        if getattr(sys, '_MEIPASS', None):
+            candidates.append(os.path.join(sys._MEIPASS, 'version.txt'))
+        return candidates
     cwd = os.getcwd()
     mod_dir = os.path.dirname(os.path.abspath(__file__))
     return [
         os.path.join(cwd, 'version.txt'),
-        os.path.join(cwd, 'config_program', 'version.txt'),
         os.path.join(mod_dir, '..', 'version.txt'),
     ]
 
@@ -71,30 +88,46 @@ def _detect_platform_key() -> str | None:
     return None
 
 
+def _find_asset(assets: list, platform_key: str) -> dict | None:
+    suffix = _ASSET_SUFFIXES.get(platform_key)
+    if not suffix:
+        return None
+    for asset in assets:
+        name = asset.get('name', '')
+        if name.lower().endswith(suffix):
+            return asset
+    return None
+
+
 def check_for_updates() -> dict | None:
-    """Check for updates. Returns release info dict or None if no update."""
+    """Check GitHub releases for updates. Returns release info dict or None."""
     try:
-        resp = requests.get(UPDATE_URL, timeout=10)
+        resp = requests.get(
+            UPDATE_URL,
+            headers={'Accept': GITHUB_ACCEPT_HEADER},
+            timeout=10,
+        )
         if resp.status_code != 200:
             logger.warning(f'Update check failed: HTTP {resp.status_code}')
             return None
         data = resp.json()
-        latest = data.get('version', '')
+        latest = str(data.get('tag_name', '')).lstrip('v')
         if not latest:
             return None
-        if _compare_versions(latest, VERSION) <= 0:
-            logger.info(f'Already up-to-date (v{VERSION})')
+        current = get_current_version()
+        if _compare_versions(latest, current) <= 0:
+            logger.info(f'Already up-to-date (v{current})')
             return None
         platform_key = _detect_platform_key()
-        download_info = data.get('downloads', {}).get(platform_key) if platform_key else None
-        if not download_info:
-            logger.warning(f'No download found for platform: {platform_key}')
+        asset = _find_asset(data.get('assets', []), platform_key)
+        if not asset:
+            logger.warning(f'No download asset found for platform: {platform_key}')
             return None
         return {
             'version': latest,
-            'download_url': download_info['url'],
-            'file_name': download_info['name'],
-            'release_url': data.get('release_url', ''),
+            'download_url': asset['browser_download_url'],
+            'file_name': asset['name'],
+            'release_url': data.get('html_url', ''),
         }
     except requests.RequestException as e:
         logger.warning(f'Update check network error: {e}')

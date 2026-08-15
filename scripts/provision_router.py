@@ -5,10 +5,11 @@ Runs the same steps as the GUI wizard without the GUI.
 """
 import ipaddress
 import logging
+import os
 import sys
 from urllib.parse import urlparse
 
-sys.path.insert(0, '/my-files/Creations/Projects/insta-billing/config_program')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config_program'))
 
 logging.basicConfig(
     level=logging.INFO,

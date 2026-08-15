@@ -3,11 +3,12 @@
 RouterOS hotspot diagnostic tool.
 Checks hotspot profile, server, bridge, files, and tests HTTP access.
 """
+import os
 import sys
 import urllib.error
 import urllib.request
 
-sys.path.insert(0, '/my-files/Creations/Projects/insta-billing/config_program')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config_program'))
 from routeros.connector import RouterOSConnector
 
 

@@ -20,6 +20,9 @@ call .venv-build\Scripts\activate.bat
 python -m pip install --upgrade pip
 pip install zstandard Nuitka PySide6 requests RouterOS-api imageio pillow
 
+echo ==^> Generating Windows icon (logo.ico)
+python scripts\make_icon.py
+
 echo ==^> Compiling Windows binary (v%VERSION%)
 python -m nuitka --standalone ^
     --onefile ^
@@ -27,7 +30,7 @@ python -m nuitka --standalone ^
     --plugin-enable=pyside6 ^
     --windows-console-mode=disable ^
     --output-dir=build ^
-    --windows-icon-from-ico=assets\images\logo.png ^
+    --windows-icon-from-ico=assets\images\logo.ico ^
     --include-data-files=assets\images\logo.png=assets\images\logo.png ^
     --include-data-files=config_program\version.txt=version.txt ^
     --follow-import-to=api ^
