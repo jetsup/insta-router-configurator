@@ -24,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
       - name: Create draft release if it does not exist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
