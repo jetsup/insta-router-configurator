@@ -436,7 +436,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/smalnets/storage/app/public/releases
-            old_dirs=$(ls -d v* 2>/dev/null | sort -V | head -n -5)
+            old_dirs=$(ls -dt v*/ 2>/dev/null | tail -n +6)
             if [ -n "$old_dirs" ]; then
               echo "Removing old releases:"
               for dir in $old_dirs; do
@@ -455,7 +455,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/smalnets/storage/app/public/releases
-            python3 -c "import json, os; dirs=sorted([d[1:] for d in os.listdir('.') if os.path.isdir(d) and d.startswith('v')], key=lambda v: [int(x) for x in v.split('.')]); open('versions.json','w').write(json.dumps({'versions': dirs, 'latest': dirs[-1] if dirs else ''}))"
+            python3 -c "import json,os; dirs=[d for d in os.listdir('.') if os.path.isdir(d) and d.startswith('v')]; dirs.sort(key=lambda d: os.path.getmtime(d), reverse=True); open('versions.json','w').write(json.dumps({'versions': dirs, 'latest': dirs[0] if dirs else ''}))"
 
       - name: Ensure public/releases symlink exists
         uses: appleboy/ssh-action@v1.2.0
