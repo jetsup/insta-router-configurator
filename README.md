@@ -98,10 +98,21 @@ are attached to GitHub Releases. The app checks
 for new versions and offers to download and apply updates on Windows.
 
 This repository has **immutable releases** enabled, so assets can only be
-attached before a release is published. Create a release as a **draft**
-(set the target tag, leave "Set as latest release" disabled and do NOT publish);
-the workflow attaches all installers to the draft, then publishes it
-automatically.
+attached before a release is published. The workflow therefore triggers on a
+**tag push**: it creates a draft release for the tag, attaches all installers
+to it, then publishes it automatically.
+
+To ship a release, just tag and push:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow builds all installers, attaches them to the draft release, and
+publishes it once every build succeeds. If a build fails, the release stays a
+draft (so nothing broken is ever published). Do not publish a release manually
+before the workflow has attached its assets.
 
 ## Project Layout
 
