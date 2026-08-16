@@ -408,6 +408,9 @@ jobs:
     needs: [build-windows, build-linux, build-macos]
 
     steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
       - name: Publish the draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
