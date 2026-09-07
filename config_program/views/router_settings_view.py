@@ -280,6 +280,16 @@ class RouterSettingsDialog(QDialog):
                 return
             self._ok(f'API connected — {msg}')
 
+            # --- Port check ---
+            from routeros.configurator import RouterOSConfigurator
+            configurator = RouterOSConfigurator(connector)
+            port_ok, port_msg = configurator.check_connected_port()
+            if not port_ok:
+                self._err(port_msg)
+                return
+            if port_msg != 'Connected to ether2':
+                self._warn(port_msg)
+
             # --- Step 1: Identity ---
             identity = list(connector.cmd('/system/identity/print'))
             current_identity = identity[0].get('name', '') if identity else ''

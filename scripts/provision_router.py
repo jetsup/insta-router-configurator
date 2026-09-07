@@ -51,6 +51,13 @@ def main():
 
     configurator = RouterOSConfigurator(conn)
 
+    port_ok, port_msg = configurator.check_connected_port()
+    if not port_ok:
+        logger.error(f'Wrong port: {port_msg}')
+        sys.exit(1)
+    if port_msg != 'Connected to ether2':
+        logger.warning(port_msg)
+
     # 3. Get ISP data for Fastnet (id=3)
     isps = api.get_isps()
     isp = next((isp for isp in isps if isp.get('id') == 3), None)

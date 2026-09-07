@@ -2,7 +2,7 @@
 
 Desktop application for configuring and managing MikroTik RouterOS devices in
 the Smalnets hotspot network. It talks to the Smalnets API at
-`https://smalnets.ddns.net`, tests router connectivity, and provisions
+`https://smalnets.com`, tests router connectivity, and provisions
 hotspot infrastructure on the router.
 
 ## Features

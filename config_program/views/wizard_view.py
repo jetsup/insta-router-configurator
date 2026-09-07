@@ -468,6 +468,21 @@ class WizardDialog(QDialog):
 
             from routeros.configurator import RouterOSConfigurator
             tester = RouterOSConfigurator(self._connector)
+
+            port_ok, port_msg = tester.check_connected_port()
+            if not port_ok:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(self, 'Wrong Port', port_msg)
+                return
+            if port_msg != 'Connected to ether2':
+                from PySide6.QtWidgets import QMessageBox
+                reply = QMessageBox.warning(
+                    self, 'Verify Connection', port_msg,
+                    QMessageBox.Ok | QMessageBox.Cancel,
+                )
+                if reply != QMessageBox.Ok:
+                    return
+
             self._has_wifi = tester.has_wireless_capability()
             logger.info(f'WiFi capability detected: {self._has_wifi}')
 

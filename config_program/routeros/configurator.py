@@ -58,6 +58,41 @@ class RouterOSConfigurator:
         except Exception as e:
             return False, {'error': str(e)}
 
+    def check_connected_port(self) -> tuple[bool, str]:
+        """Verify the user's PC is connected to ether2 before configuring.
+
+        Returns:
+            (ok, message) — ok is False when the user must not proceed
+            (not on ether2).  When ok is True but message is not the
+            bare 'Connected to ether2' string the caller should show a
+            non-blocking warning (multiple ethernet ports are live).
+        """
+        try:
+            ifaces = self.conn.cmd('/interface/print')
+            ethers = [i for i in ifaces if i.get('type') == 'ether']
+            running = [i.get('name', '') for i in ethers
+                       if i.get('running') == 'true']
+
+            if 'ether2' not in running:
+                return False, (
+                    'Your computer is not connected to ether2. '
+                    'Please connect to the ether2 (LAN) port before '
+                    'configuring the router.'
+                )
+
+            other_running = [n for n in running if n not in ('ether1', 'ether2')]
+            if other_running:
+                ports = ', '.join(other_running)
+                return True, (
+                    f'Multiple ethernet ports are connected ({ports}). '
+                    'Please verify that you are connected to ether2 — '
+                    'configuring from other ports may fail.'
+                )
+
+            return True, 'Connected to ether2'
+        except Exception as e:
+            return False, f'Failed to check port status: {e}'
+
     def change_password(self, username: str, old_password: str, new_password: str) -> tuple[bool, str]:
         if new_password == old_password or not new_password:
             return True, 'Password unchanged (same as current)'
