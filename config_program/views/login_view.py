@@ -12,12 +12,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from config import BASE_URL
 from views.styles import current_theme
 
 logger = logging.getLogger(__name__)
 
 # Embedded server URL — no need to ask users
-SERVER_URL = "https://smalnets.ddns.net"
+SERVER_URL = BASE_URL
 
 
 class PasswordField(QWidget):

@@ -18,6 +18,7 @@ import api.updater as _updater  # noqa: F401 – ensure Nuitka bundles updater m
 from api.auth import Auth
 from api.client import ApiClient
 from api.updater import get_current_version
+from config import BASE_URL
 from views.dashboard_view import DashboardView
 from views.login_view import LoginView
 from views.splash import SplashOverlay
@@ -104,7 +105,7 @@ class SmalnetsConfigApp(QMainWindow):
         self.stack = QStackedWidget()
         layout.addWidget(self.stack)
 
-        self.auth = Auth(base_url="https://smalnets.ddns.net")
+        self.auth = Auth(base_url=BASE_URL)
         self.api = ApiClient(self.auth)
 
         logger.info(f'App starting, default server URL: {self.auth.base_url}')

@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from config import BASE_URL, DOMAIN
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -518,7 +520,7 @@ class DashboardView(QWidget):
         VPN/WireGuard setup, GenieACS integration, RADIUS NAS registration, and
         hotspot provisioning.</p>
         <p><b>Built with:</b> Python, PySide6</p>
-        <p><b>Website:</b> <a href="https://smalnets.ddns.net">smalnets.ddns.net</a></p>
+        <p><b>Website:</b> <a href="{BASE_URL}">{DOMAIN}</a></p>
         """)
         layout.addWidget(details, 1)
 
