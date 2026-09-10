@@ -14,14 +14,6 @@ on:
 permissions:
   contents: write
 
-env:
-  # Build variants. The configurator always ships BOTH variants per tag:
-  #   prod  -> https://smalnets.com      deployed to the PRODUCTION server
-  #   dev   -> https://smalnets.ddns.net deployed to the DEVELOPMENT server
-  # Binary names embed the variant so a release can carry both and the
-  # in-app updater can tell them apart (*-dev assets are never offered to
-  # production installs).
-
 jobs:
   # =========================================================================
   # 🏷️ CREATE-DRAFT JOB (ensure a draft release exists for the pushed tag)
