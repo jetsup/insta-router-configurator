@@ -1,0 +1,25 @@
+# Deployment credentials for the build scripts.
+#
+# Copy this file to `deploy_config` (git-ignored) and fill in the
+# usernames and IPs for your servers. Both build_linux.sh and
+# build_windows.bat read `deploy_config` when you pass --upload.
+#
+#   PROD_USER / PROD_HOST   -> --env prod  backend https://smalnets.com
+#   DEV_USER  / DEV_HOST    -> --env dev   backend https://smalnets.ddns.net
+#   UPLOAD_BASE             -> absolute path on the server that holds the
+#                              release folders (mirrors the GitHub Actions
+#                              releases/<tag>/ and releases/latest/ layout).
+#
+# Leave DEV_* empty if you have no dev server. Lines starting with '#' are
+# comments. Do not quote the values.
+
+# Production server (https://smalnets.com)
+PROD_USER=root
+PROD_HOST=102.68.87.210
+
+# Development server (https://smalnets.ddns.net)
+DEV_USER=
+DEV_HOST=
+
+# Remote directory that stores the releases
+UPLOAD_BASE=/var/www/smalnets/storage/app/public/releases

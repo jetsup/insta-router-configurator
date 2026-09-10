@@ -79,14 +79,22 @@ Ethernet port may be locked from the android app or the user dashboard after pro
 ## Building
 
 Standalone binaries are compiled with [Nuitka](https://nuitka.net/). The build
-scripts accept an optional variant argument (`prod` default, `dev`):
+scripts build for either the **prod** server (`https://smalnets.com`,
+`root@102.68.87.210`) or the **dev** server (`https://smalnets.ddns.net`,
+`root@84.247.164.42`), auto-increment the version from the latest git tag, and
+can push the release tag and upload the binary to the server's release
+folders:
 
 ### Linux
 
 ```bash
 sudo apt-get install -y build-essential libgl1-mesa-dev
-./build_linux.sh 1.0.0            # prod  -> https://smalnets.com
-./build_linux.sh 1.0.0 dev        # dev   -> https://smalnets.ddns.net
+./build_linux.sh                       # prod build, v0.0.6 -> v0.0.7
+./build_linux.sh --env dev             # dev build (backend https://smalnets.ddns.net)
+./build_linux.sh --env dev --upload    # build dev + scp to the dev server
+./build_linux.sh --version 1.2.3       # force a specific version
+./build_linux.sh --no-tag              # build but do not create/push the git tag
+./build_linux.sh --help                # full option reference
 ```
 
 Output: `dist/smalnets_<version>_<arch>.bin` (prod) /
@@ -95,12 +103,38 @@ Output: `dist/smalnets_<version>_<arch>.bin` (prod) /
 ### Windows
 
 ```bat
-build_windows.bat 1.0.0           rem prod
-build_windows.bat 1.0.0 dev       rem dev
+build_windows.bat                       rem prod build, v0.0.6 -> v0.0.7
+build_windows.bat --env dev             rem dev build
+build_windows.bat --env dev --upload    rem build dev + scp to the dev server
+build_windows.bat --version 1.2.3       rem force a specific version
+build_windows.bat --no-tag              rem build without tag push
+build_windows.bat --help                rem full option reference
 ```
 
 Output: `dist\smalnets_<version>_amd64.exe` (prod) /
 `dist\smalnets_<version>-dev_amd64.exe` (dev).
+
+### Versioning, tags and uploads
+
+* With no `--version` the script reads the most recent `vX.Y.Z` git tag and
+  auto-increments the **patch** number (`v0.0.6` -> `0.0.7`); the new version
+  is written to `config_program/version.txt` and embedded in the file name.
+* Unless `--no-tag` is given, the script creates a `vX.Y.Z` tag from the
+  current `HEAD` and **pushes it** — this mirrors the GitHub Actions flow,
+  which builds all platforms and deploys on tag push. If the tag already
+  exists it is not re-created.
+* `--upload` scp's the built binary over SSH to the matching server's
+  release folders (`releases/<tag>/` and `releases/latest/`). Upload
+  requires the OpenSSH `ssh`/`scp` clients and a `deploy_config` file with
+  your server credentials:
+
+  ```bash
+  cp deploy_config.sample deploy_config   # then edit the usernames/IPs
+  ```
+
+  The file holds `PROD_USER`/`PROD_HOST`, `DEV_USER`/`DEV_HOST` and
+  `UPLOAD_BASE` (leave `DEV_*` empty if you have no dev server). It is
+  git-ignored, so credentials stay out of the repository.
 
 The build scripts also generate the Windows `logo.ico` from the source PNG
 (`scripts/make_icon.py`) so the executable and taskbar show the app logo.
