@@ -46,8 +46,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER }
-          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER }
+          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER, deploy_key_secret: PROD_SSH_KEY }
+          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
 
     steps:
       - name: Checkout Code Repository
@@ -136,7 +136,7 @@ jobs:
           USER: ${{ secrets[matrix.deploy_user_secret] }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets[matrix.deploy_key_secret] }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           V="${{ steps.version_info.outputs.version }}"
           ARCH="${{ steps.version_info.outputs.arch }}"
@@ -157,8 +157,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER }
-          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER }
+          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER, deploy_key_secret: PROD_SSH_KEY }
+          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
 
     steps:
       - name: Checkout Code Repository
@@ -269,7 +269,7 @@ jobs:
         with:
           host: ${{ secrets[matrix.deploy_host_secret] }}
           username: ${{ secrets[matrix.deploy_user_secret] }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ secrets[matrix.deploy_key_secret] }}
           script: |
             rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*${{ matrix.label }}.deb
             rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*${{ matrix.label }}.rpm
@@ -282,7 +282,7 @@ jobs:
         with:
           host: ${{ secrets[matrix.deploy_host_secret] }}
           username: ${{ secrets[matrix.deploy_user_secret] }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ secrets[matrix.deploy_key_secret] }}
           source: dist/smalnets_${{ steps.version_info.outputs.version }}${{ matrix.label }}_${{ steps.version_info.outputs.arch }}.deb,dist/smalnets-${{ steps.version_info.outputs.version }}${{ matrix.label }}-1.${{ steps.version_info.outputs.arch }}.rpm
           target: /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/
           strip_components: 1
@@ -293,7 +293,7 @@ jobs:
         with:
           host: ${{ secrets[matrix.deploy_host_secret] }}
           username: ${{ secrets[matrix.deploy_user_secret] }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ secrets[matrix.deploy_key_secret] }}
           source: dist/smalnets_${{ steps.version_info.outputs.version }}${{ matrix.label }}_${{ steps.version_info.outputs.arch }}.deb,dist/smalnets-${{ steps.version_info.outputs.version }}${{ matrix.label }}-1.${{ steps.version_info.outputs.arch }}.rpm
           target: /var/www/smalnets/storage/app/public/releases/latest/
           strip_components: 1
@@ -304,7 +304,7 @@ jobs:
         with:
           host: ${{ secrets[matrix.deploy_host_secret] }}
           username: ${{ secrets[matrix.deploy_user_secret] }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ secrets[matrix.deploy_key_secret] }}
           script: |
             ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases
 
@@ -319,8 +319,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER }
-          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER }
+          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER, deploy_key_secret: PROD_SSH_KEY }
+          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
 
     steps:
       - name: Checkout Code Repository
@@ -432,7 +432,7 @@ jobs:
           USER: ${{ secrets[matrix.deploy_user_secret] }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets[matrix.deploy_key_secret] }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           V="${{ steps.version_info.outputs.version }}"
           ARCH="${{ steps.version_info.outputs.arch }}"
@@ -476,8 +476,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - { deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER }
-          - { deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER }
+          - { deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
+          - { deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER, deploy_key_secret: PROD_SSH_KEY }
 
     steps:
       - name: Remove oldest releases beyond the 5 most recent
@@ -485,7 +485,7 @@ jobs:
         with:
           host: ${{ secrets[matrix.deploy_host_secret] }}
           username: ${{ secrets[matrix.deploy_user_secret] }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ secrets[matrix.deploy_key_secret] }}
           script: |
             cd /var/www/smalnets/storage/app/public/releases
             old_dirs=$(ls -dt v*/ 2>/dev/null | tail -n +6)
@@ -504,7 +504,7 @@ jobs:
         with:
           host: ${{ secrets[matrix.deploy_host_secret] }}
           username: ${{ secrets[matrix.deploy_user_secret] }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ secrets[matrix.deploy_key_secret] }}
           script: |
             cd /var/www/smalnets/storage/app/public/releases
             python3 -c "import json,os; dirs=[d for d in os.listdir('.') if os.path.isdir(d) and d.startswith('v')]; dirs.sort(key=lambda d: os.path.getmtime(d), reverse=True); open('versions.json','w').write(json.dumps({'versions': dirs, 'latest': dirs[0] if dirs else ''}))"
@@ -514,6 +514,6 @@ jobs:
         with:
           host: ${{ secrets[matrix.deploy_host_secret] }}
           username: ${{ secrets[matrix.deploy_user_secret] }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: ${{ secrets[matrix.deploy_key_secret] }}
           script: |
             ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases
