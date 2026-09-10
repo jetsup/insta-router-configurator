@@ -14,6 +14,14 @@ on:
 permissions:
   contents: write
 
+env:
+  # Build variants. The configurator always ships BOTH variants per tag:
+  #   prod  -> https://smalnets.com      deployed to the PRODUCTION server
+  #   dev   -> https://smalnets.ddns.net deployed to the DEVELOPMENT server
+  # Binary names embed the variant so a release can carry both and the
+  # in-app updater can tell them apart (*-dev assets are never offered to
+  # production installs).
+
 jobs:
   # =========================================================================
   # 🏷️ CREATE-DRAFT JOB (ensure a draft release exists for the pushed tag)
@@ -40,9 +48,14 @@ jobs:
   # =========================================================================
   build-windows:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    name: Compile Branded Windows Executable (.exe)
+    name: Compile Branded Windows Executable (${{ matrix.variant }})
     runs-on: windows-latest
     needs: [create-draft]
+    strategy:
+      matrix:
+        include:
+          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER }
+          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER }
 
     steps:
       - name: Checkout Code Repository
@@ -71,6 +84,14 @@ jobs:
           V="${V#v}"
           echo -n "$V" > config_program/version.txt
 
+      - name: Write build variant config
+        shell: bash
+        run: |
+          cat > config_program/build_config.py <<EOF
+          BASE_URL = '${{ matrix.api }}'
+          VARIANT = '${{ matrix.variant }}'
+          EOF
+
       - name: Set version and arch for output naming
         id: version_info
         shell: bash
@@ -92,6 +113,7 @@ jobs:
               --windows-icon-from-ico=assets/images/logo.ico \
               --include-data-files=assets/images/logo.png=assets/images/logo.png \
               --include-data-files=config_program/version.txt=version.txt \
+              --include-module=build_config \
               --follow-import-to=api \
               --follow-import-to=controllers \
               --follow-import-to=routeros \
@@ -102,41 +124,49 @@ jobs:
         shell: bash
         run: |
           mkdir dist
-          EXE="smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.exe"
+          EXE="smalnets_${{ steps.version_info.outputs.version }}${{ matrix.label }}_${{ steps.version_info.outputs.arch }}.exe"
           mv build/main.exe "dist/${EXE}"
 
       - name: Attach Windows Executable to GitHub Release Assets
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.exe
+          files: dist/smalnets_${{ steps.version_info.outputs.version }}${{ matrix.label }}_${{ steps.version_info.outputs.arch }}.exe
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy Windows Executable to VPS
+      - name: Deploy Windows Executable to Server
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
+        env:
+          HOST: ${{ secrets[matrix.deploy_host_secret] }}
+          USER: ${{ secrets[matrix.deploy_user_secret] }}
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           V="${{ steps.version_info.outputs.version }}"
           ARCH="${{ steps.version_info.outputs.arch }}"
-          EXE="smalnets_${V}_${ARCH}.exe"
-          ssh -o StrictHostKeyChecking=no "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "mkdir -p /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }} && rm -f /var/www/smalnets/storage/app/public/releases/latest/*.exe"
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${EXE}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/"
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${EXE}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/smalnets/storage/app/public/releases/latest/"
-          ssh -o StrictHostKeyChecking=no "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases"
+          EXE="smalnets_${V}${{ matrix.label }}_${ARCH}.exe"
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "mkdir -p /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }} && rm -f /var/www/smalnets/storage/app/public/releases/latest/*.exe"
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${EXE}" "$USER@$HOST:/var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/"
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${EXE}" "$USER@$HOST:/var/www/smalnets/storage/app/public/releases/latest/"
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases"
 
   # =========================================================================
   # 🐧 LINUX COMPILATION JOB (Native Ubuntu Linux Hardware)
   # =========================================================================
   build-linux:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    name: Compile Branded Linux Packages (.deb / .rpm)
+    name: Compile Branded Linux Packages (${{ matrix.variant }})
     runs-on: ubuntu-latest
     needs: [create-draft]
+    strategy:
+      matrix:
+        include:
+          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER }
+          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER }
 
     steps:
       - name: Checkout Code Repository
@@ -168,6 +198,13 @@ jobs:
           V="${V#v}"
           echo -n "$V" > config_program/version.txt
 
+      - name: Write build variant config
+        run: |
+          cat > config_program/build_config.py <<EOF
+          BASE_URL = '${{ matrix.api }}'
+          VARIANT = '${{ matrix.variant }}'
+          EOF
+
       - name: Set version and arch for output naming
         id: version_info
         run: |
@@ -197,6 +234,7 @@ jobs:
               --output-dir=build \
               --include-data-files=assets/images/logo.png=assets/images/logo.png \
               --include-data-files=config_program/version.txt=version.txt \
+              --include-module=build_config \
               --follow-import-to=api \
               --follow-import-to=controllers \
               --follow-import-to=routeros \
@@ -214,57 +252,57 @@ jobs:
           cp assets/images/logo.png build/pkg-root/usr/share/pixmaps/smalnets.png
           cp smalnets.1 build/pkg-root/usr/share/man/man1/
 
-      - name: Generate Production DEB and RPM Installers
+      - name: Generate ${{ matrix.variant }} DEB and RPM Installers
         run: |
           VERSION="${{ steps.version_info.outputs.version }}"
           ARCH="${{ steps.version_info.outputs.arch }}"
           mkdir dist
-          nfpm pkg --config nfpm.yaml --target "dist/smalnets_${VERSION}_${ARCH}.deb"
-          nfpm pkg --config nfpm.yaml --target "dist/smalnets-${VERSION}-1.${ARCH}.rpm"
+          nfpm pkg --config nfpm.yaml --target "dist/smalnets_${VERSION}${{ matrix.label }}_${ARCH}.deb"
+          nfpm pkg --config nfpm.yaml --target "dist/smalnets-${VERSION}${{ matrix.label }}-1.${ARCH}.rpm"
 
       - name: Attach Linux Package Suite to GitHub Release Assets
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.deb
-            dist/smalnets-${{ steps.version_info.outputs.version }}-1.${{ steps.version_info.outputs.arch }}.rpm
+            dist/smalnets_${{ steps.version_info.outputs.version }}${{ matrix.label }}_${{ steps.version_info.outputs.arch }}.deb
+            dist/smalnets-${{ steps.version_info.outputs.version }}${{ matrix.label }}-1.${{ steps.version_info.outputs.arch }}.rpm
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Clean old Linux packages from VPS
+      - name: Clean old ${{ matrix.variant }} Linux packages from server
         if: startsWith(github.ref, 'refs/tags/')
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets[matrix.deploy_host_secret] }}
+          username: ${{ secrets[matrix.deploy_user_secret] }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*.deb
-            rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*.rpm
-            rm -f /var/www/smalnets/storage/app/public/releases/latest/*.deb
-            rm -f /var/www/smalnets/storage/app/public/releases/latest/*.rpm
+            rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*${{ matrix.label }}.deb
+            rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*${{ matrix.label }}.rpm
+            rm -f /var/www/smalnets/storage/app/public/releases/latest/*${{ matrix.label }}.deb
+            rm -f /var/www/smalnets/storage/app/public/releases/latest/*${{ matrix.label }}.rpm
 
-      - name: Deploy Linux Packages to VPS
+      - name: Deploy ${{ matrix.variant }} Linux Packages to Server
         if: startsWith(github.ref, 'refs/tags/')
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets[matrix.deploy_host_secret] }}
+          username: ${{ secrets[matrix.deploy_user_secret] }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: dist/smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.deb,dist/smalnets-${{ steps.version_info.outputs.version }}-1.${{ steps.version_info.outputs.arch }}.rpm
+          source: dist/smalnets_${{ steps.version_info.outputs.version }}${{ matrix.label }}_${{ steps.version_info.outputs.arch }}.deb,dist/smalnets-${{ steps.version_info.outputs.version }}${{ matrix.label }}-1.${{ steps.version_info.outputs.arch }}.rpm
           target: /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/
           strip_components: 1
 
-      - name: Copy Linux Packages to Latest Release
+      - name: Copy ${{ matrix.variant }} Linux Packages to Latest Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets[matrix.deploy_host_secret] }}
+          username: ${{ secrets[matrix.deploy_user_secret] }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: dist/smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.deb,dist/smalnets-${{ steps.version_info.outputs.version }}-1.${{ steps.version_info.outputs.arch }}.rpm
+          source: dist/smalnets_${{ steps.version_info.outputs.version }}${{ matrix.label }}_${{ steps.version_info.outputs.arch }}.deb,dist/smalnets-${{ steps.version_info.outputs.version }}${{ matrix.label }}-1.${{ steps.version_info.outputs.arch }}.rpm
           target: /var/www/smalnets/storage/app/public/releases/latest/
           strip_components: 1
 
@@ -272,8 +310,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets[matrix.deploy_host_secret] }}
+          username: ${{ secrets[matrix.deploy_user_secret] }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases
@@ -283,9 +321,14 @@ jobs:
   # =========================================================================
   build-macos:
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    name: Compile Branded macOS Installer (.dmg)
+    name: Compile Branded macOS Installer (${{ matrix.variant }})
     runs-on: macos-14 # Targets modern Apple Silicon / M-series chips natively
     needs: [create-draft]
+    strategy:
+      matrix:
+        include:
+          - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER }
+          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER }
 
     steps:
       - name: Checkout Code Repository
@@ -308,6 +351,13 @@ jobs:
           V="${{ github.ref_name }}"
           V="${V#v}"
           echo -n "$V" > config_program/version.txt
+
+      - name: Write build variant config
+        run: |
+          cat > config_program/build_config.py <<EOF
+          BASE_URL = '${{ matrix.api }}'
+          VARIANT = '${{ matrix.variant }}'
+          EOF
 
       - name: Set version and arch for output naming
         id: version_info
@@ -342,6 +392,7 @@ jobs:
               --output-dir=build \
               --include-data-files=assets/images/logo.png=assets/images/logo.png \
               --include-data-files=config_program/version.txt=version.txt \
+              --include-module=build_config \
               --follow-import-to=api \
               --follow-import-to=controllers \
               --follow-import-to=routeros \
@@ -369,32 +420,35 @@ jobs:
             --icon-size 100 \
             --icon "Smalnets.app" 120 120 \
             --app-drop-link 370 120 \
-            "dist/smalnets_${VERSION}_${ARCH}.dmg" \
+            "dist/smalnets_${VERSION}${{ matrix.label }}_${ARCH}.dmg" \
             "dmg-source/"
 
       - name: Attach macOS Disk Image to GitHub Release Assets
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/smalnets_${{ steps.version_info.outputs.version }}_${{ steps.version_info.outputs.arch }}.dmg
+          files: dist/smalnets_${{ steps.version_info.outputs.version }}${{ matrix.label }}_${{ steps.version_info.outputs.arch }}.dmg
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy macOS Disk Image to VPS
+      - name: Deploy macOS Disk Image to Server
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
+        env:
+          HOST: ${{ secrets[matrix.deploy_host_secret] }}
+          USER: ${{ secrets[matrix.deploy_user_secret] }}
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           V="${{ steps.version_info.outputs.version }}"
           ARCH="${{ steps.version_info.outputs.arch }}"
-          DMG="smalnets_${V}_${ARCH}.dmg"
-          ssh -o StrictHostKeyChecking=no "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "mkdir -p /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }} && rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*.dmg /var/www/smalnets/storage/app/public/releases/latest/*.dmg"
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${DMG}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/"
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${DMG}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/smalnets/storage/app/public/releases/latest/"
-          ssh -o StrictHostKeyChecking=no "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases"
+          DMG="smalnets_${V}${{ matrix.label }}_${ARCH}.dmg"
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "mkdir -p /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }} && rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*${{ matrix.label }}.dmg /var/www/smalnets/storage/app/public/releases/latest/*${{ matrix.label }}.dmg"
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${DMG}" "$USER@$HOST:/var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/"
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${DMG}" "$USER@$HOST:/var/www/smalnets/storage/app/public/releases/latest/"
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases"
 
   # =========================================================================
   # 🚀 PUBLISH JOB (flip the draft release to published after all installers
@@ -419,20 +473,26 @@ jobs:
           echo "Published ${{ github.ref_name }}"
 
   # =========================================================================
-  # 🧹 VPS STORAGE CLEANUP (keep max 5 releases, runs after all builds)
+  # 🧹 SERVER STORAGE CLEANUP (keep max 5 releases on EACH server, runs after
+  #    all builds)
   # =========================================================================
-  cleanup-vps:
+  cleanup-servers:
     if: startsWith(github.ref, 'refs/tags/')
-    name: Cleanup Old Releases from VPS
+    name: Cleanup Old Releases from Servers
     runs-on: ubuntu-latest
     needs: [publish-release]
+    strategy:
+      matrix:
+        include:
+          - { deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER }
+          - { deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER }
 
     steps:
       - name: Remove oldest releases beyond the 5 most recent
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets[matrix.deploy_host_secret] }}
+          username: ${{ secrets[matrix.deploy_user_secret] }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/smalnets/storage/app/public/releases
@@ -450,8 +510,8 @@ jobs:
       - name: Generate version manifest
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets[matrix.deploy_host_secret] }}
+          username: ${{ secrets[matrix.deploy_user_secret] }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/smalnets/storage/app/public/releases
@@ -460,8 +520,8 @@ jobs:
       - name: Ensure public/releases symlink exists
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ secrets[matrix.deploy_host_secret] }}
+          username: ${{ secrets[matrix.deploy_user_secret] }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases

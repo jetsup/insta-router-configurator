@@ -1,4 +1,5 @@
 import contextlib
+import ipaddress
 import logging
 
 from .connector import RouterOSConnector
@@ -261,6 +262,14 @@ class RouterOSConfigurator:
             'such name exists',
         ])
 
+    @staticmethod
+    def _is_loopback_or_link_local(ip: str) -> bool:
+        try:
+            parsed = ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        return parsed.is_loopback or parsed.is_link_local
+
     def _remove_interface_from_bridge(self, interface: str) -> None:
         ports = self.conn.cmd('/interface/bridge/port/print')
         for bp in ports:
@@ -405,6 +414,15 @@ class RouterOSConfigurator:
                     except socket.gaierror:
                         return False, {
                             "error": f"Unable to resolve {cp_host}"
+                        }
+
+                    if self._is_loopback_or_link_local(cp_host_ip):
+                        return False, {
+                            "error": (
+                                f"Refusing to use {cp_host_ip} for {cp_host}: "
+                                f"the captive portal server must be a public IP, "
+                                f"not a loopback address. Check the server's portal domain/app URL."
+                            )
                         }
 
                     cp_port = parts[1] if len(parts) > 1 else "443"

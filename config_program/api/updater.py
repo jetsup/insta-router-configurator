@@ -20,6 +20,15 @@ _ASSET_SUFFIXES = {
 }
 
 
+def _variant() -> str:
+    """Return the build variant this binary was compiled for ('prod'/'dev')."""
+    try:
+        from build_config import VARIANT  # type: ignore
+        return str(VARIANT)
+    except ImportError:
+        return 'prod'
+
+
 def _is_compiled() -> bool:
     return getattr(sys, 'frozen', False)
 
@@ -92,9 +101,15 @@ def _find_asset(assets: list, platform_key: str) -> dict | None:
     suffix = _ASSET_SUFFIXES.get(platform_key)
     if not suffix:
         return None
+    variant = _variant()
     for asset in assets:
         name = asset.get('name', '')
-        if name.lower().endswith(suffix):
+        if not name.lower().endswith(suffix):
+            continue
+        if variant == 'dev':
+            if '-dev' in name:
+                return asset
+        elif '-dev' not in name:
             return asset
     return None
 

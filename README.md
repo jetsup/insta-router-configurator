@@ -1,9 +1,20 @@
 # Smalnets Router Configurator
 
 Desktop application for configuring and managing MikroTik RouterOS devices in
-the Smalnets hotspot network. It talks to the Smalnets API at
-`https://smalnets.com`, tests router connectivity, and provisions
-hotspot infrastructure on the router.
+the Smalnets hotspot network. It talks to the Smalnets API, tests router
+connectivity, and provisions hotspot infrastructure on the router.
+
+> The backend URL is set at **build time**. The configurator ships in two
+> variants, each pointing at its own server, so a dev build can never be
+> confused with a production one:
+>
+> | Variant | Backend            | Deployed to        |
+> | ------- | ------------------ | ------------------ |
+> | **prod** | `https://smalnets.com` | production server |
+> | **dev**  | `https://smalnets.ddns.net` | development server |
+>
+> Binaries are named `*-dev*` for the dev variant. The in-app updater never
+> offers a dev asset to a production install.
 
 ## Features
 
@@ -67,24 +78,29 @@ Ethernet port may be locked from the android app or the user dashboard after pro
 
 ## Building
 
-Standalone binaries are compiled with [Nuitka](https://nuitka.net/).
+Standalone binaries are compiled with [Nuitka](https://nuitka.net/). The build
+scripts accept an optional variant argument (`prod` default, `dev`):
 
 ### Linux
 
 ```bash
 sudo apt-get install -y build-essential libgl1-mesa-dev
-./build_linux.sh [VERSION]        # e.g. ./build_linux.sh 1.0.0
+./build_linux.sh 1.0.0            # prod  -> https://smalnets.com
+./build_linux.sh 1.0.0 dev        # dev   -> https://smalnets.ddns.net
 ```
 
-Output: `dist/smalnets_<version>_<arch>.bin`
+Output: `dist/smalnets_<version>_<arch>.bin` (prod) /
+`dist/smalnets_<version>-dev_<arch>.bin` (dev).
 
 ### Windows
 
 ```bat
-build_windows.bat [VERSION]
+build_windows.bat 1.0.0           rem prod
+build_windows.bat 1.0.0 dev       rem dev
 ```
 
-Output: `dist\smalnets_<version>_amd64.exe`
+Output: `dist\smalnets_<version>_amd64.exe` (prod) /
+`dist\smalnets_<version>-dev_amd64.exe` (dev).
 
 The build scripts also generate the Windows `logo.ico` from the source PNG
 (`scripts/make_icon.py`) so the executable and taskbar show the app logo.
@@ -93,9 +109,13 @@ The build scripts also generate the Windows `logo.ico` from the source PNG
 
 Release builds are produced by the GitHub Actions workflow
 (`.github/workflows/build.yml`) for Windows, Linux (deb/rpm), and macOS, and
-are attached to GitHub Releases. The app checks
+are attached to GitHub Releases. Every tag builds **both** variants and deploys
+each to its own server (prod to the production server, dev to the development
+server). The app checks
 `https://api.github.com/repos/jetsup/insta-router-configurator/releases/latest`
-for new versions and offers to download and apply updates on Windows.
+for new versions and offers to download and apply updates on Windows. The
+updater only matches assets from the same variant it was compiled for, so a
+production install never receives a `-dev` binary.
 
 This repository has **immutable releases** enabled, so assets can only be
 attached before a release is published. The workflow therefore triggers on a

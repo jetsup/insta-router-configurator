@@ -150,7 +150,7 @@ class ProvisionWorker(QObject):
                 'genieacs_username': genieacs.get('username', ''),
                 'genieacs_password': genieacs.get('password', ''),
                 'genieacs_interval': genieacs.get('periodic_inform_interval', 300),
-                'captive_portal_server': cp_domain,
+                'captive_portal_server': portal_domain,
                 'router_id': router_id,
                 'hotspot_interfaces': ifaces,
                 'routeros_host': host,

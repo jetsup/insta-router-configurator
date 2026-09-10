@@ -3,7 +3,12 @@
 # Compile the Smalnets Router Config Tool into a standalone Linux binary.
 #
 # Usage:
-#   ./build_linux.sh [VERSION]     # VERSION optional, defaults to config_program/version.txt
+#   ./build_linux.sh [VERSION] [dev|prod]
+#
+#   VERSION    optional, defaults to config_program/version.txt
+#   VARIANT    optional, prod (default) or dev. Picks the backend URL:
+#                prod -> https://smalnets.com
+#                dev  -> https://smalnets.ddns.net
 #
 # System prerequisites (Ubuntu/Debian):
 #   sudo apt-get install -y build-essential libgl1-mesa-dev
@@ -20,8 +25,23 @@ if ! command -v gcc >/dev/null 2>&1; then
 fi
 
 VERSION="${1:-$(cat config_program/version.txt 2>/dev/null || echo 0.0.0)}"
+VARIANT="${2:-prod}"
+LABEL=""
+
+case "$VARIANT" in
+    prod) API_URL="https://smalnets.com" ;;
+    dev)  API_URL="https://smalnets.ddns.net"; LABEL="-dev" ;;
+    *) echo "ERROR: VARIANT must be 'dev' or 'prod' (got '$VARIANT')" >&2; exit 1 ;;
+esac
+
 VERSION="${VERSION#v}"
 echo -n "$VERSION" > config_program/version.txt
+cat > config_program/build_config.py <<EOF
+BASE_URL = '$API_URL'
+VARIANT = '$VARIANT'
+EOF
+
+echo "==> Building $VARIANT variant (API: $API_URL)"
 
 echo "==> Creating venv"
 python3 -m venv .venv-build
@@ -37,6 +57,7 @@ python -m nuitka --standalone \
     --output-dir=build \
     --include-data-files=assets/images/logo.png=assets/images/logo.png \
     --include-data-files=config_program/version.txt=version.txt \
+    --include-module=build_config \
     --follow-import-to=api \
     --follow-import-to=controllers \
     --follow-import-to=routeros \
@@ -45,5 +66,5 @@ python -m nuitka --standalone \
 
 mkdir -p dist
 ARCH="$(uname -m)"
-cp build/main.bin "dist/smalnets_${VERSION}_${ARCH}.bin"
-echo "==> Done: dist/smalnets_${VERSION}_${ARCH}.bin"
+cp build/main.bin "dist/smalnets_${VERSION}${LABEL}_${ARCH}.bin"
+echo "==> Done: dist/smalnets_${VERSION}${LABEL}_${ARCH}.bin"

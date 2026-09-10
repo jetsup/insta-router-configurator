@@ -5,3 +5,4 @@ __pycache__
 *.pyc
 .DS_Store
 config_program/version.txt
+config_program/build_config.py
