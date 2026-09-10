@@ -6,10 +6,11 @@ rem Usage:
 rem   build_windows.bat [OPTIONS]
 rem
 rem Options:
-rem   --env prod|dev      Backend variant (default: prod)
+rem   --env prod|dev|both Backend variant(s) to build (default: prod)
 rem                         prod -> https://smalnets.com
 rem                         dev  -> https://smalnets.ddns.net
-rem   --upload            Upload the built binary to the matching server's
+rem                         both -> prod + dev binaries
+rem   --upload            Upload the built binary(ies) to the matching server's
 rem                       release folders (releases/<tag>/ and releases/latest/).
 rem                       Reads SSH credentials from deploy_config
 rem                       (see deploy_config.sample).
@@ -55,14 +56,11 @@ echo ERROR: unknown option: %~1
 exit /b 1
 :parsed
 
-set "LABEL="
-set "API_URL=https://smalnets.com"
-if /i "%VARIANT%"=="dev" (
-    set "API_URL=https://smalnets.ddns.net"
-    set "LABEL=-dev"
-)
-if /i not "%VARIANT%"=="prod" if /i not "%VARIANT%"=="dev" (
-    echo ERROR: VARIANT must be 'dev' or 'prod' ^(got '%VARIANT%'^)
+set "TARGETS=prod"
+if /i "%VARIANT%"=="dev" set "TARGETS=dev"
+if /i "%VARIANT%"=="both" set "TARGETS=prod dev"
+if /i not "%VARIANT%"=="prod" if /i not "%VARIANT%"=="dev" if /i not "%VARIANT%"=="both" (
+    echo ERROR: VARIANT must be 'dev', 'prod' or 'both' ^(got '%VARIANT%'^)
     exit /b 1
 )
 
@@ -80,10 +78,7 @@ set "VERSION=!VERSION:v=!"
 set "TAG=v%VERSION%"
 
 > config_program\version.txt echo !VERSION!
-> config_program\build_config.py echo BASE_URL = '%API_URL%'
->> config_program\build_config.py echo VARIANT = '%VARIANT%'
-
-echo ==^> Building %VARIANT% variant v!VERSION! ^(API: %API_URL%^)
+echo ==^> Building v!VERSION! for: !TARGETS!
 
 rem ------------------------------------------------------------------ build
 echo ==^> Creating venv
@@ -95,27 +90,7 @@ pip install zstandard Nuitka PySide6 requests RouterOS-api imageio pillow
 echo ==^> Generating Windows icon (logo.ico)
 python scripts\make_icon.py
 
-echo ==^> Compiling Windows binary (v!VERSION!)
-python -m nuitka --standalone ^
-    --onefile ^
-    --assume-yes-for-downloads ^
-    --plugin-enable=pyside6 ^
-    --windows-console-mode=disable ^
-    --output-dir=build ^
-    --windows-icon-from-ico=assets\images\logo.ico ^
-    --include-data-files=assets\images\logo.png=assets\images\logo.png ^
-    --include-data-files=config_program\version.txt=version.txt ^
-    --include-module=build_config ^
-    --follow-import-to=api ^
-    --follow-import-to=controllers ^
-    --follow-import-to=routeros ^
-    --follow-import-to=views ^
-    config_program\main.py
-
-if not exist dist mkdir dist
-set "OUT=dist\smalnets_!VERSION!%LABEL%_amd64.exe"
-copy /y build\main.exe "!OUT!"
-echo ==^> Done: !OUT!
+for %%t in (%TARGETS%) do call :build_one %%t
 
 rem -------------------------------------------------------------------- tag
 if "%DO_TAG%"=="1" (
@@ -142,42 +117,96 @@ if "%UPLOAD%"=="1" (
         exit /b 1
     )
     for /f "usebackq eol=# tokens=1,* delims==" %%a in ("deploy_config") do set "%%a=%%b"
-    if /i "%VARIANT%"=="dev" (
-        set "SSH_USER=!DEV_USER!"
-        set "SSH_HOST=!DEV_HOST!"
-    ) else (
-        set "SSH_USER=!PROD_USER!"
-        set "SSH_HOST=!PROD_HOST!"
-    )
-    if "!SSH_USER!"=="" (
-        echo ERROR: %VARIANT%_USER not set in deploy_config
-        exit /b 1
-    )
-    if "!SSH_HOST!"=="" (
-        echo ERROR: %VARIANT%_HOST not set in deploy_config
-        exit /b 1
-    )
     set "BASE=!UPLOAD_BASE!"
     if "!BASE!"=="" set "BASE=/var/www/smalnets/storage/app/public/releases"
-    echo ==^> Uploading !OUT! to !SSH_USER!@!SSH_HOST!
-    ssh -o StrictHostKeyChecking=no !SSH_USER!@!SSH_HOST! "mkdir -p !BASE!/!TAG! !BASE!/latest"
-    scp -o StrictHostKeyChecking=no "!OUT!" !SSH_USER!@!SSH_HOST!:!BASE!/!TAG!/
-    scp -o StrictHostKeyChecking=no "!OUT!" !SSH_USER!@!SSH_HOST!:!BASE!/latest/
-    echo ==^> Upload complete ^(releases/!TAG!/ and releases/latest/^)
-    echo     URL: https://!SSH_HOST!/releases/!TAG!/smalnets_!VERSION!%LABEL%_amd64.exe
+    for %%t in (%TARGETS%) do call :upload_one %%t
 )
 
 endlocal
 exit /b 0
 
+:build_one
+set "T=%~1"
+set "API_URL=https://smalnets.com"
+set "LABEL="
+set "OUT_DIR=build"
+if /i "%T%"=="dev" (
+    set "API_URL=https://smalnets.ddns.net"
+    set "LABEL=-dev"
+    set "OUT_DIR=build\dev"
+)
+> config_program\build_config.py echo BASE_URL = '%API_URL%'
+>> config_program\build_config.py echo VARIANT = '%T%'
+echo ==^> Building %T% variant v!VERSION! ^(API: %API_URL%^)
+if exist "%OUT_DIR%\main.build" rd /s /q "%OUT_DIR%\main.build"
+if exist "%OUT_DIR%\main.dist" rd /s /q "%OUT_DIR%\main.dist"
+if exist "%OUT_DIR%\main.onefile-build" rd /s /q "%OUT_DIR%\main.onefile-build"
+if exist "%OUT_DIR%\main.bin" del /q "%OUT_DIR%\main.bin"
+python -m nuitka --standalone ^
+    --onefile ^
+    --assume-yes-for-downloads ^
+    --plugin-enable=pyside6 ^
+    --windows-console-mode=disable ^
+    --output-dir="%OUT_DIR%" ^
+    --windows-icon-from-ico=assets\images\logo.ico ^
+    --include-data-files=assets\images\logo.png=assets\images\logo.png ^
+    --include-data-files=config_program\version.txt=version.txt ^
+    --include-module=build_config ^
+    --follow-import-to=api ^
+    --follow-import-to=controllers ^
+    --follow-import-to=routeros ^
+    --follow-import-to=views ^
+    config_program\main.py
+if not exist dist mkdir dist
+copy /y "%OUT_DIR%\main.exe" "dist\smalnets_!VERSION!%LABEL%_amd64.exe"
+echo ==^> Done: dist\smalnets_!VERSION!%LABEL%_amd64.exe
+goto :eof
+
+:upload_one
+set "T=%~1"
+if /i "%T%"=="dev" (
+    set "SSH_USER=!DEV_USER!"
+    set "SSH_HOST=!DEV_HOST!"
+    set "LABEL=-dev"
+) else (
+    set "SSH_USER=!PROD_USER!"
+    set "SSH_HOST=!PROD_HOST!"
+    set "LABEL="
+)
+if "!SSH_USER!"=="" (
+    if /i "%VARIANT%"=="both" (
+        echo ==^> Skipping %T% upload ^(%T%_USER not set in deploy_config^)
+        goto :eof
+    )
+    echo ERROR: %T%_USER not set in deploy_config
+    exit /b 1
+)
+if "!SSH_HOST!"=="" (
+    if /i "%VARIANT%"=="both" (
+        echo ==^> Skipping %T% upload ^(%T%_HOST not set in deploy_config^)
+        goto :eof
+    )
+    echo ERROR: %T%_HOST not set in deploy_config
+    exit /b 1
+)
+set "OUT=dist\smalnets_!VERSION!%LABEL%_amd64.exe"
+echo ==^> Uploading !OUT! to !SSH_USER!@!SSH_HOST!
+ssh -o StrictHostKeyChecking=no !SSH_USER!@!SSH_HOST! "mkdir -p !BASE!/!TAG! !BASE!/latest"
+scp -o StrictHostKeyChecking=no "!OUT!" !SSH_USER!@!SSH_HOST!:!BASE!/!TAG!/
+scp -o StrictHostKeyChecking=no "!OUT!" !SSH_USER!@!SSH_HOST!:!BASE!/latest/
+echo ==^> Uploaded %T% ^(releases/!TAG!/ and releases/latest/^)
+echo     URL: https://!SSH_HOST!/releases/!TAG!/smalnets_!VERSION!%LABEL%_amd64.exe
+goto :eof
+
 :usage
 echo Usage: build_windows.bat [OPTIONS]
 echo.
 echo Options:
-echo   --env prod^|dev      Backend variant ^(default: prod^)
+echo   --env prod^|dev^|both Backend variant^(s^) to build ^(default: prod^)
 echo                         prod -^> https://smalnets.com
 echo                         dev  -^> https://smalnets.ddns.net
-echo   --upload            Upload the built binary to the matching server's
+echo                         both -^> prod + dev binaries
+echo   --upload            Upload the built binary^(ies^) to the matching server's
 echo                       release folders ^(releases/^<tag^>/ and releases/latest/^).
 echo                       Reads SSH credentials from deploy_config
 echo                       ^(see deploy_config.sample^).

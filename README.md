@@ -91,6 +91,7 @@ folders:
 sudo apt-get install -y build-essential libgl1-mesa-dev
 ./build_linux.sh                       # prod build, v0.0.6 -> v0.0.7
 ./build_linux.sh --env dev             # dev build (backend https://smalnets.ddns.net)
+./build_linux.sh --env both            # prod + dev binaries, both kept
 ./build_linux.sh --env dev --upload    # build dev + scp to the dev server
 ./build_linux.sh --version 1.2.3       # force a specific version
 ./build_linux.sh --no-tag              # build but do not create/push the git tag
@@ -100,11 +101,17 @@ sudo apt-get install -y build-essential libgl1-mesa-dev
 Output: `dist/smalnets_<version>_<arch>.bin` (prod) /
 `dist/smalnets_<version>-dev_<arch>.bin` (dev).
 
+Nuitka's working directories are kept on disk so both variants survive a
+`both` run: the prod build lives in `build/` and the dev build in
+`build/dev/`. (Only each variant's own `main.*` artifacts are cleared
+before it builds, so `build/dev/` is never wiped by a prod build.)
+
 ### Windows
 
 ```bat
 build_windows.bat                       rem prod build, v0.0.6 -> v0.0.7
 build_windows.bat --env dev             rem dev build
+build_windows.bat --env both            rem prod + dev binaries, both kept
 build_windows.bat --env dev --upload    rem build dev + scp to the dev server
 build_windows.bat --version 1.2.3       rem force a specific version
 build_windows.bat --no-tag              rem build without tag push
@@ -113,6 +120,10 @@ build_windows.bat --help                rem full option reference
 
 Output: `dist\smalnets_<version>_amd64.exe` (prod) /
 `dist\smalnets_<version>-dev_amd64.exe` (dev).
+
+Nuitka's working directories are kept on disk so both variants survive a
+`both` run: the prod build lives in `build\` and the dev build in
+`build\dev\`.
 
 ### Versioning, tags and uploads
 
