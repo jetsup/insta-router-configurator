@@ -486,6 +486,19 @@ class WizardDialog(QDialog):
             self._has_wifi = tester.has_wireless_capability()
             logger.info(f'WiFi capability detected: {self._has_wifi}')
 
+            supported, mode = tester.check_device_mode()
+            if supported and mode != 'advanced':
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.warning(
+                    self,
+                    'Router Mode Required',
+                    'This router must be set to Advanced mode before configuring. '
+                    'Set it to Advanced mode (/system/device-mode/update '
+                    'mode=advanced), wait for the router to reboot, then click '
+                    '"Test Connection" again and continue.',
+                )
+                return
+
         elif self._step_index == 1:
             if self._has_wifi and not self.step_config.wifi_ssid:
                 from PySide6.QtWidgets import QMessageBox

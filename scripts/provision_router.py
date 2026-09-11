@@ -58,6 +58,14 @@ def main():
     if port_msg != 'Connected to ether2':
         logger.warning(port_msg)
 
+    supported, mode = configurator.check_device_mode()
+    if supported and mode != 'advanced':
+        logger.error(
+            'Router must be set to Advanced mode before configuring. '
+            'Set it to Advanced mode, wait for the reboot, then re-run this script.'
+        )
+        sys.exit(1)
+
     # 3. Get ISP data for Fastnet (id=3)
     isps = api.get_isps()
     isp = next((isp for isp in isps if isp.get('id') == 3), None)

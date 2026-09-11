@@ -194,7 +194,7 @@ class RouterOSConfigurator:
             self.conn.cmd('/ip/hotspot/set', interface=interface, address_pool='smalnets-dhcp', enabled='yes')
             self.conn.cmd('/ip/hotspot/profile/set', numbers=0, hotspot_address=f'{network_part}.1', dns_name=dns_name or '')
 
-            wlan = self._get_wlan_interface()
+            wlan = self.wlan_interface
             if wlan:
                 self.conn.cmd('/ip/hotspot/set', interface=wlan, enabled='yes')
 
@@ -582,26 +582,83 @@ class RouterOSConfigurator:
         except Exception:
             return False
 
-    def _get_wlan_interface(self) -> str | None:
+    def _get_wlan_interface(self) -> tuple[str | None, str | None]:
+        """Return (interface_name, kind) for the first available WiFi radio.
+
+        kind is 'wifi' for Wave2 (`/interface/wifi`, RouterOS 7.13+, used by
+        newer models like the L009UiGS-2HaxD) or 'wireless' for legacy Wave1
+        (`/interface/wireless`, used by older models like the RB951).
+        """
+        try:
+            interfaces = self.conn.cmd('/interface/wifi/print')
+            for iface in interfaces:
+                name = iface.get('name', '')
+                if name:
+                    return name, 'wifi'
+        except Exception:
+            pass
         try:
             interfaces = self.conn.cmd('/interface/wireless/print')
             for iface in interfaces:
                 name = iface.get('name', '')
                 if name.startswith('wlan') or name.startswith('wl'):
-                    return name
+                    return name, 'wireless'
         except Exception:
             pass
-        return None
+        return None, None
+
+    @property
+    def wlan_interface(self) -> str | None:
+        """Name of the WiFi interface, or None when the router has no radio."""
+        name, _ = self._get_wlan_interface()
+        return name
+
+    @property
+    def wlan_kind(self) -> str | None:
+        """'wifi' for Wave2, 'wireless' for Wave1, None when no radio."""
+        _, kind = self._get_wlan_interface()
+        return kind
 
     def has_wireless_capability(self) -> bool:
-        return self._get_wlan_interface() is not None
+        return self.wlan_interface is not None
+
+    def check_device_mode(self) -> tuple[bool, str | None]:
+        """Check whether the router runs in 'advanced' mode.
+
+        Newer RouterOS 7 models ship in 'home' mode, which disables hotspot,
+        NAT/firewall, and other features. Returns (supported, mode):
+        supported is False on legacy devices that have no device-mode menu.
+        """
+        try:
+            result = self.conn.cmd('/system/device-mode/print')
+            mode = result[0].get('mode', '') if result else ''
+            if not mode:
+                return False, None
+            return True, mode
+        except Exception:
+            return False, None
 
     def configure_wireless(self, ssid: str) -> tuple[bool, str]:
         try:
-            wlan = self._get_wlan_interface()
+            wlan, kind = self._get_wlan_interface()
             if not wlan:
                 return False, 'No wireless interface found'
-            # Ensure open security profile (no password) for hotspot
+
+            if kind == 'wifi':
+                # Wave2 (interface wifi) — used by newer models (L009, ...).
+                # Open network (no password): leave authentication-types empty.
+                self.conn.cmd(
+                    '/interface/wifi/set',
+                    numbers=wlan,
+                    **{'configuration.ssid': ssid},
+                    **{'security.authentication-types': ''},
+                    **{'security.passphrase': ''},
+                    disabled='no',
+                )
+                self.conn.cmd('/interface/set', numbers=wlan, disabled='no')
+                return True, f'WiFi configured with SSID "{ssid}" (open, no password) on {wlan}'
+
+            # Legacy Wave1 (interface wireless) — ensure open security profile.
             existing_profiles = self.conn.cmd('/interface/wireless/security-profiles/print')
             open_profile = next((p for p in existing_profiles if p.get('name') == 'smalnets-open'), None)
             if open_profile is None:
