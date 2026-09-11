@@ -271,10 +271,10 @@ jobs:
           username: ${{ secrets[matrix.deploy_user_secret] }}
           key: ${{ secrets[matrix.deploy_key_secret] }}
           script: |
-            rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*${{ matrix.label }}.deb
-            rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*${{ matrix.label }}.rpm
-            rm -f /var/www/smalnets/storage/app/public/releases/latest/*${{ matrix.label }}.deb
-            rm -f /var/www/smalnets/storage/app/public/releases/latest/*${{ matrix.label }}.rpm
+            rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/smalnets*.deb
+            rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/smalnets*.rpm
+            rm -f /var/www/smalnets/storage/app/public/releases/latest/smalnets*.deb
+            rm -f /var/www/smalnets/storage/app/public/releases/latest/smalnets*.rpm
 
       - name: Deploy ${{ matrix.variant }} Linux Packages to Server
         if: startsWith(github.ref, 'refs/tags/')
@@ -437,7 +437,7 @@ jobs:
           V="${{ steps.version_info.outputs.version }}"
           ARCH="${{ steps.version_info.outputs.arch }}"
           DMG="smalnets_${V}${{ matrix.label }}_${ARCH}.dmg"
-          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "mkdir -p /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }} && rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/*${{ matrix.label }}.dmg /var/www/smalnets/storage/app/public/releases/latest/*${{ matrix.label }}.dmg"
+          ssh -o StrictHostKeyChecking=no "$USER@$HOST" "mkdir -p /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }} && rm -f /var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/smalnets*.dmg /var/www/smalnets/storage/app/public/releases/latest/smalnets*.dmg"
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${DMG}" "$USER@$HOST:/var/www/smalnets/storage/app/public/releases/${{ github.ref_name }}/"
           scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "dist/${DMG}" "$USER@$HOST:/var/www/smalnets/storage/app/public/releases/latest/"
           ssh -o StrictHostKeyChecking=no "$USER@$HOST" "ln -sf ../storage/app/public/releases /var/www/smalnets/public/releases"
