@@ -329,10 +329,12 @@ class RouterOSConfigurator:
                 self.conn.cmd('/ip/dhcp-server/set', numbers='hotspot-dhcp', interface=self.BRIDGE_NAME, address_pool='hs-pool', lease_time='10m')
 
             existing_profiles = self.conn.cmd('/ip/hotspot/profile/print')
+            hotspot_dir = self._detect_hotspot_dir(self.conn.cmd('/file/print'))
+            html_dir = hotspot_dir.rstrip('/')
             if any(p.get('name') == 'hsprof' for p in existing_profiles):
-                self.conn.cmd('/ip/hotspot/profile/set', numbers='hsprof', hotspot_address='192.168.10.1', dns_name=resolved_dns, use_radius='yes', radius_accounting='yes', html_directory='smalnets', **{'login-by': 'http-pap,http-chap,cookie'})
+                self.conn.cmd('/ip/hotspot/profile/set', numbers='hsprof', hotspot_address='192.168.10.1', dns_name=resolved_dns, use_radius='yes', radius_accounting='yes', html_directory=html_dir, **{'login-by': 'http-pap,http-chap,cookie'})
             else:
-                self.conn.cmd('/ip/hotspot/profile/add', name='hsprof', hotspot_address='192.168.10.1', dns_name=resolved_dns, use_radius='yes', radius_accounting='yes', html_directory='smalnets', **{'login-by': 'http-pap,http-chap,cookie'})
+                self.conn.cmd('/ip/hotspot/profile/add', name='hsprof', hotspot_address='192.168.10.1', dns_name=resolved_dns, use_radius='yes', radius_accounting='yes', html_directory=html_dir, **{'login-by': 'http-pap,http-chap,cookie'})
 
             try:
                 self.conn.cmd('/ip/hotspot/add', interface=self.BRIDGE_NAME, address_pool='hs-pool', name='hotspot', disabled='no', profile='hsprof')
@@ -687,9 +689,9 @@ class RouterOSConfigurator:
     def _detect_hotspot_dir(self, existing: list[dict]) -> str:
         """Detect whether router uses flash/ prefix for hotspot files.
 
-        Some models (L009, RouterOS 7+) mount flash at /flash/ so hotspot
-        files live at flash/smalnets/.  Others (RB951, older devices) mount
-        flash at root so files live at smalnets/.
+        Some models mount flash at /flash/ so hotspot files live at
+        flash/smalnets/ (older Models, RouterOS 6).  Others mount flash at root
+        so files live at smalnets/ (newer Models, RouterOS 7+).
         """
         for f in existing:
             name: str = f.get('name', '')
@@ -702,16 +704,20 @@ class RouterOSConfigurator:
             existing = self.conn.cmd('/file/print')
             hotspot_dir = self._detect_hotspot_dir(existing)
 
-            # Remove existing hotspot HTML files to avoid "file already exists"
+            # Remove existing hotspot files so re-uploads never hit
+            # "file already exists" (keeps subdirectory assets refreshed)
             for f in existing:
                 fname: str = f.get('name', '')
-                if fname.endswith('smalnets/login.html') or fname.endswith('smalnets/status.html') or fname.endswith('smalnets/alogin.html'):
-                    with contextlib.suppress(Exception):
-                        self.conn.cmd('/file/remove', numbers=fname)
+                if not fname.startswith(hotspot_dir):
+                    continue
+                if f.get('type') == 'directory':
+                    continue
+                with contextlib.suppress(Exception):
+                    self.conn.cmd('/file/remove', numbers=fname)
 
             for path, content in files.items():
                 smalnets_path = path.replace('hotspot/', hotspot_dir, 1) if path.startswith('hotspot/') else path
                 self.conn.cmd('/file/add', name=smalnets_path, contents=content)
-            return True, 'Hotspot files uploaded to router'
+            return True, f'Uploaded {len(files)} hotspot files to {hotspot_dir}'
         except Exception as e:
             return False, f'Hotspot file upload failed: {e}'

@@ -1,3 +1,4 @@
+import contextlib
 import logging
 
 from PySide6.QtCore import Qt, QTimer
@@ -453,27 +454,33 @@ class RouterSettingsDialog(QDialog):
                 hotspot_files = self.api.get_hotspot_files(domain, captive_portal_url)
                 existing_files = connector.cmd('/file/print')
 
+                hotspot_dir = (
+                    'flash/smalnets/'
+                    if any(
+                        f.get('name', '') == 'flash' or f.get('name', '').startswith('flash/')
+                        for f in existing_files
+                    )
+                    else 'smalnets/'
+                )
+
                 for f in existing_files:
                     fname = f.get('name', '')
-                    if any(
-                        x in fname
-                        for x in [
-                            'smalnets/login.html',
-                            'smalnets/status.html',
-                            'smalnets/alogin.html',
-                        ]
-                    ):
+                    if not fname.startswith(hotspot_dir):
+                        continue
+                    if f.get('type') == 'directory':
+                        continue
+                    with contextlib.suppress(Exception):
                         connector.cmd('/file/remove', numbers=fname)
 
                 for path, content in hotspot_files.items():
                     smalnets_path = (
-                        path.replace('hotspot/', 'smalnets/', 1)
+                        path.replace('hotspot/', hotspot_dir, 1)
                         if path.startswith('hotspot/')
                         else path
                     )
                     connector.cmd('/file/add', name=smalnets_path, contents=content)
 
-                self._fix('Hotspot files uploaded')
+                self._fix(f'Hotspot files uploaded ({len(hotspot_files)} files)')
             except Exception as e:
                 self._err(f'Hotspot file upload failed: {e}')
 
@@ -582,8 +589,6 @@ class RouterSettingsDialog(QDialog):
             logger.error(f'Reconfigure failed: {e}', exc_info=True)
             self._err(f'Error: {e}')
         finally:
-            import contextlib
-
             if connector and connector.is_connected():
                 with contextlib.suppress(Exception):
                     connector.disconnect()
