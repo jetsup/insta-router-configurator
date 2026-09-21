@@ -156,13 +156,15 @@ class ApiClient:
         logger.info(f'Verify & reconfigure result: {result.get("message", "")}')
         return result
 
-    def server_checks(self, router_name: str, system_info: dict | None = None, firmware_version: str = '') -> dict:
+    def server_checks(self, router_name: str, system_info: dict | None = None, firmware_version: str = '', wg_public_key: str = '') -> dict:
         logger.info(f'Running server checks for router {router_name}')
         payload: dict = {}
         if system_info:
             payload['system_info'] = system_info
         if firmware_version:
             payload['firmware_version'] = firmware_version
+        if wg_public_key:
+            payload['wg_public_key'] = wg_public_key
         resp = self._request('POST', f'/api/v1/routers/{router_name}/server-checks', json=payload)
         self._handle_response(resp, 'server_checks')
         result = resp.json()

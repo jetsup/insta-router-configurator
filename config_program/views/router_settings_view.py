@@ -534,6 +534,22 @@ class RouterSettingsDialog(QDialog):
             else:
                 self._warn('No WiFi SSID configured in database')
 
+            # --- Step 12c: capture the router's own WireGuard public key so
+            # the backend can (re)register the server-side peer without any
+            # manual key handling ---
+            router_pubkey = ''
+            try:
+                for iface in connector.cmd('/interface/wireguard/print'):
+                    if iface.get('name') == 'wg0':
+                        router_pubkey = iface.get('public-key', '') or ''
+                        break
+                if router_pubkey:
+                    self._ok('Router WireGuard public key captured for server sync')
+                else:
+                    self._warn('Router wg0 has no public key to sync')
+            except Exception as e:
+                self._warn(f'Could not read router WireGuard key: {e}')
+
             connector.disconnect()
             connector = None
 
@@ -552,6 +568,7 @@ class RouterSettingsDialog(QDialog):
                     self.router_name,
                     system_info=system_info,
                     firmware_version=sys_version,
+                    wg_public_key=router_pubkey,
                 )
                 msg = result.get('message', '')
                 report = result.get('report', {})
