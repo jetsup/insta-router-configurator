@@ -1,5 +1,5 @@
 distro==1.9.0
-Pillow==12.3.0
+Pillow==13.0.0
 pyside6==6.11.1
 pyside6_addons==6.11.1
 pyside6_essentials==6.11.1
