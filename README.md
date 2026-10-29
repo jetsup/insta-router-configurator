@@ -97,10 +97,27 @@ Python dependencies are listed in [`config_program/requirements.txt`](config_pro
 
 ## Quick Start
 
+### Setup (virtual environment)
+
+Create the virtual environment once, from the repository root:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+`requirements.txt` pins the exact versions the app is built and tested with
+(Python 3.12+; verified on 3.14). `config_program/requirements.txt` is the
+looser, unpinned equivalent plus `ruff` for linting.
+
+Each new terminal session needs `source .venv/bin/activate` again, or call the
+interpreter directly as `.venv/bin/python`.
+
 ### GUI
 
 ```bash
-pip install -r config_program/requirements.txt
+source .venv/bin/activate
 python3 config_program/main.py
 ```
 
@@ -116,6 +133,7 @@ python3 config_program/main.py
 ### Headless provisioning
 
 ```bash
+source .venv/bin/activate
 python3 scripts/provision_router.py
 ```
 
@@ -125,6 +143,7 @@ router reuses the existing VPN IP.
 ### Diagnostics
 
 ```bash
+source .venv/bin/activate
 python3 scripts/diagnose_hotspot.py
 ```
 
