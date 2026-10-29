@@ -114,6 +114,25 @@ looser, unpinned equivalent plus `ruff` for linting.
 Each new terminal session needs `source .venv/bin/activate` again, or call the
 interpreter directly as `.venv/bin/python`.
 
+### Choosing dev or prod (running from source)
+
+No build is needed to switch backends. Use the launcher:
+
+```bash
+./run.sh dev                # GUI against https://smaldev.smalnets.com
+./run.sh prod               # GUI against https://smalnets.com
+./run.sh dev provision      # headless provisioning against dev
+./run.sh prod diagnose      # hotspot diagnostics against prod
+```
+
+Or set `SMALNETS_ENV=dev|prod` yourself (environment variable, or a `.env`
+file copied from `.env.example`); the variable wins over `.env`. With neither,
+source runs default to prod. `SMALNETS_BASE_URL` points at any other backend.
+Dev windows are titled `[DEV]`, and dev logins are stored separately
+(`~/.smalnets_token_dev`) from prod (`~/.smalnets_token`), so switching never
+logs you out. Compiled builds ignore all of this; their target is fixed at
+build time.
+
 ### GUI
 
 ```bash

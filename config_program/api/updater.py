@@ -21,12 +21,9 @@ _ASSET_SUFFIXES = {
 
 
 def _variant() -> str:
-    """Return the build variant this binary was compiled for ('prod'/'dev')."""
-    try:
-        from build_config import VARIANT  # type: ignore
-        return str(VARIANT)
-    except ImportError:
-        return 'prod'
+    """Return the environment this app targets ('prod'/'dev')."""
+    from config import VARIANT
+    return VARIANT
 
 
 def _is_compiled() -> bool:

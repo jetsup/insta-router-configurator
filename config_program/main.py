@@ -18,7 +18,7 @@ import api.updater as _updater  # noqa: F401 – ensure Nuitka bundles updater m
 from api.auth import Auth
 from api.client import ApiClient
 from api.updater import get_current_version
-from config import BASE_URL
+from config import BASE_URL, VARIANT
 from views.dashboard_view import DashboardView
 from views.login_view import LoginView
 from views.splash import SplashOverlay
@@ -89,7 +89,10 @@ def get_asset_path(relative_path):
 class SmalnetsConfigApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Smalnets Router Configuration Tool")
+        self.setWindowTitle(
+            "Smalnets Router Configuration Tool"
+            + (" [DEV]" if VARIANT == "dev" else "")
+        )
         self.setMinimumSize(1100, 700)
         self.resize(1180, 740)
 

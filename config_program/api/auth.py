@@ -4,9 +4,13 @@ from pathlib import Path
 
 import requests
 
+from config import VARIANT
+
 logger = logging.getLogger(__name__)
 
-TOKEN_FILE = Path.home() / '.smalnets_token'
+# Dev and prod issue separate tokens, so each keeps its own file; a token that
+# is rejected by one backend must never wipe the other's login.
+TOKEN_FILE = Path.home() / ('.smalnets_token' if VARIANT == 'prod' else f'.smalnets_token_{VARIANT}')
 
 
 class Auth:
@@ -24,7 +28,11 @@ class Auth:
             try:
                 data = json.loads(self._token_path().read_text())
                 self.token = data.get('token')
-                self.base_url = data.get('base_url', self.base_url)
+                saved_url = str(data.get('base_url', self.base_url)).rstrip('/')
+                if saved_url != self.base_url:
+                    logger.info(f'Ignoring saved token issued for {saved_url}')
+                    self.token = None
+                    return
                 logger.info(f'Loaded saved token for base_url={self.base_url}')
             except (json.JSONDecodeError, KeyError) as e:
                 logger.warning(f'Failed to load token file: {e}')
