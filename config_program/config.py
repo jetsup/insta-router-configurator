@@ -7,7 +7,7 @@ place.
 Two build variants are supported:
 
 * **production** (default) — ``https://smalnets.com``
-* **development** — ``https://smalnets.ddns.net``
+* **development** — ``https://smaldev.smalnets.com``
 
 The variant is selected at compile time by generating ``build_config.py``
 (see ``build_linux.sh``, ``build_windows.bat`` and

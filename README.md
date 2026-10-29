@@ -11,7 +11,7 @@ connectivity, and provisions hotspot infrastructure on the router.
 > | Variant | Backend            | Deployed to        |
 > | ------- | ------------------ | ------------------ |
 > | **prod** | `https://smalnets.com` | production server |
-> | **dev**  | `https://smalnets.ddns.net` | development server |
+> | **dev**  | `https://smaldev.smalnets.com` | development server |
 >
 > Binaries are named `*-dev*` for the dev variant. The in-app updater never
 > offers a dev asset to a production install.
@@ -181,7 +181,7 @@ idempotent — existing config is detected and reused instead of duplicated.
 
 Standalone binaries are compiled with [Nuitka](https://nuitka.net/). The build
 scripts build for either the **prod** server (`https://smalnets.com`,
-`root@102.68.87.210`) or the **dev** server (`https://smalnets.ddns.net`,
+`root@102.68.87.210`) or the **dev** server (`https://smaldev.smalnets.com`,
 `root@84.247.164.42`), auto-increment the version from the latest git tag, and
 can push the release tag and upload the binary to the server's release
 folders:
@@ -191,7 +191,7 @@ folders:
 ```bash
 sudo apt-get install -y build-essential libgl1-mesa-dev
 ./build_linux.sh                       # prod build, v0.0.6 -> v0.0.7
-./build_linux.sh --env dev             # dev build (backend https://smalnets.ddns.net)
+./build_linux.sh --env dev             # dev build (backend https://smaldev.smalnets.com)
 ./build_linux.sh --env both            # prod + dev binaries, both kept
 ./build_linux.sh --env dev --upload    # build dev + scp to the dev server
 ./build_linux.sh --version 1.2.3       # force a specific version

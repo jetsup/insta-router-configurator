@@ -47,7 +47,7 @@ jobs:
       matrix:
         include:
           - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER, deploy_key_secret: PROD_SSH_KEY }
-          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
+          - { variant: dev,  label: '-dev',  api: 'https://smaldev.smalnets.com', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
 
     steps:
       - name: Checkout Code Repository
@@ -158,7 +158,7 @@ jobs:
       matrix:
         include:
           - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER, deploy_key_secret: PROD_SSH_KEY }
-          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
+          - { variant: dev,  label: '-dev',  api: 'https://smaldev.smalnets.com', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
 
     steps:
       - name: Checkout Code Repository
@@ -320,7 +320,7 @@ jobs:
       matrix:
         include:
           - { variant: prod, label: '',      api: 'https://smalnets.com',      deploy_host_secret: PROD_HOST, deploy_user_secret: PROD_USER, deploy_key_secret: PROD_SSH_KEY }
-          - { variant: dev,  label: '-dev',  api: 'https://smalnets.ddns.net', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
+          - { variant: dev,  label: '-dev',  api: 'https://smaldev.smalnets.com', deploy_host_secret: VPS_HOST,  deploy_user_secret: VPS_USER, deploy_key_secret: VPS_SSH_KEY }
 
     steps:
       - name: Checkout Code Repository

@@ -9,7 +9,7 @@
 # Options:
 #   --env prod|dev|both Backend variant(s) to build (default: prod)
 #                         prod -> https://smalnets.com
-#                         dev  -> https://smalnets.ddns.net
+#                         dev  -> https://smaldev.smalnets.com
 #                         both -> prod + dev binaries
 #   --upload            Upload the built binary(ies) to the matching server's
 #                       release folders (releases/<tag>/ and releases/latest/).
@@ -48,7 +48,7 @@ Usage: ./build_linux.sh [OPTIONS]
 Options:
   --env prod|dev|both Backend variant(s) to build (default: prod)
                         prod -> https://smalnets.com
-                        dev  -> https://smalnets.ddns.net
+                        dev  -> https://smaldev.smalnets.com
                         both -> prod + dev binaries
   --upload            Upload the built binary(ies) to the matching server's
                       release folders (releases/<tag>/ and releases/latest/).
@@ -96,7 +96,7 @@ variant_url() {
     if [[ "$1" == "prod" ]]; then
         echo "https://smalnets.com"
     else
-        echo "https://smalnets.ddns.net"
+        echo "https://smaldev.smalnets.com"
     fi
 }
 variant_label() {

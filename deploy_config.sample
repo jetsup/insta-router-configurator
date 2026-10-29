@@ -5,7 +5,7 @@
 # build_windows.bat read `deploy_config` when you pass --upload.
 #
 #   PROD_USER / PROD_HOST   -> --env prod  backend https://smalnets.com
-#   DEV_USER  / DEV_HOST    -> --env dev   backend https://smalnets.ddns.net
+#   DEV_USER  / DEV_HOST    -> --env dev   backend https://smaldev.smalnets.com
 #   UPLOAD_BASE             -> absolute path on the server that holds the
 #                              release folders (mirrors the GitHub Actions
 #                              releases/<tag>/ and releases/latest/ layout).
@@ -17,7 +17,7 @@
 PROD_USER=root
 PROD_HOST=102.68.87.210
 
-# Development server (https://smalnets.ddns.net)
+# Development server (https://smaldev.smalnets.com)
 DEV_USER=
 DEV_HOST=
 

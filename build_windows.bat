@@ -8,7 +8,7 @@ rem
 rem Options:
 rem   --env prod|dev|both Backend variant(s) to build (default: prod)
 rem                         prod -> https://smalnets.com
-rem                         dev  -> https://smalnets.ddns.net
+rem                         dev  -> https://smaldev.smalnets.com
 rem                         both -> prod + dev binaries
 rem   --upload            Upload the built binary(ies) to the matching server's
 rem                       release folders (releases/<tag>/ and releases/latest/).
@@ -131,7 +131,7 @@ set "API_URL=https://smalnets.com"
 set "LABEL="
 set "OUT_DIR=build"
 if /i "%T%"=="dev" (
-    set "API_URL=https://smalnets.ddns.net"
+    set "API_URL=https://smaldev.smalnets.com"
     set "LABEL=-dev"
     set "OUT_DIR=build\dev"
 )
@@ -204,7 +204,7 @@ echo.
 echo Options:
 echo   --env prod^|dev^|both Backend variant^(s^) to build ^(default: prod^)
 echo                         prod -^> https://smalnets.com
-echo                         dev  -^> https://smalnets.ddns.net
+echo                         dev  -^> https://smaldev.smalnets.com
 echo                         both -^> prod + dev binaries
 echo   --upload            Upload the built binary^(ies^) to the matching server's
 echo                       release folders ^(releases/^<tag^>/ and releases/latest/^).
