@@ -119,8 +119,8 @@ interpreter directly as `.venv/bin/python`.
 No build is needed to switch backends. Use the launcher:
 
 ```bash
-./run.sh dev                # GUI against https://smaldev.smalnets.com
-./run.sh prod               # GUI against https://smalnets.com
+./run.sh dev                # GUI against dev server
+./run.sh prod               # GUI against production server
 ./run.sh dev provision      # headless provisioning against dev
 ./run.sh prod diagnose      # hotspot diagnostics against prod
 ```
@@ -199,9 +199,7 @@ idempotent — existing config is detected and reused instead of duplicated.
 ## Building
 
 Standalone binaries are compiled with [Nuitka](https://nuitka.net/). The build
-scripts build for either the **prod** server (`https://smalnets.com`,
-`root@102.68.87.210`) or the **dev** server (`https://smaldev.smalnets.com`,
-`root@84.247.164.42`), auto-increment the version from the latest git tag, and
+scripts build for either the **prod** server or the **dev** server, auto-increment the version from the latest git tag, and
 can push the release tag and upload the binary to the server's release
 folders:
 
@@ -210,7 +208,7 @@ folders:
 ```bash
 sudo apt-get install -y build-essential libgl1-mesa-dev
 ./build_linux.sh                       # prod build, v0.0.6 -> v0.0.7
-./build_linux.sh --env dev             # dev build (backend https://smaldev.smalnets.com)
+./build_linux.sh --env dev             # dev build
 ./build_linux.sh --env both            # prod + dev binaries, both kept
 ./build_linux.sh --env dev --upload    # build dev + scp to the dev server
 ./build_linux.sh --version 1.2.3       # force a specific version
